@@ -1,8 +1,8 @@
-package com.dcs.controller;
+package com.mu.controller;
 
-import com.dcs.dataStruct.DiGraph;
-import com.dcs.model.Edge;
-import com.dcs.model.Vertex;
+import com.mu.dataStruct.DiGraph;
+import com.mu.model.Edge;
+import com.mu.model.Vertex;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -12,7 +12,6 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Arrays;
 import java.util.List;
 
 @Controller

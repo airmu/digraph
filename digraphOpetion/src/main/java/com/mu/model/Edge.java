@@ -1,4 +1,4 @@
-package com.dcs.model;
+package com.mu.model;
 
 /**
  * 边
