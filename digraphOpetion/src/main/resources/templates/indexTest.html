@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <script th:src="@{/js/echarts.min.js}" type="text/javascript"></script>
+
+    <style type="text/css">
+        #rightDiv {
+            border: #aabfa5 1px solid;
+        }
+        #rightDiv input{
+            width: 400px;
+            height: 20px;
+        }
+        #rightDiv textarea {
+            width: 398px;
+            height: 80px;
+        }
+        #rightDiv td {
+            width: 150px;
+        }
+    </style>
+</head>
+<body>
+
+
+<div id="rightDiv" style="width: 40%;height: 2000px;float: right">
+    <div style="width: 100%;height: 400px;">
+        <table>
+            <caption>添加节点</caption>
+            <form action="/insertVersion">
+                <tr>
+                    <td>版本号：</td>
+                    <td><input name="version"></td>
+                </tr>
+                <tr>
+                    <td>cq：</td>
+                    <td><input name="cq"></td>
+                </tr>
+                <tr>
+                    <td>更新内容：</td>
+                    <td><textarea name="upContent"></textarea></td>
+                </tr>
+                <tr>
+                    <td>基线化时间：</td>
+                    <td><input name="bslTime"></td>
+                </tr>
+                <tr>
+                    <td>关联数据库版本：</td>
+                    <td><input name="linkDbv"></td>
+                </tr>
+                <tr>
+                    <td>关联其他应用：</td>
+                    <td><input name="linkApp"></td>
+                </tr>
+                <tr>
+                    <td>备注1：</td>
+                    <td><input name="remark1"></td>
+                </tr>
+                <tr>
+                    <td>备注2：</td>
+                    <td><input name="remark2"></td>
+                </tr>
+                <tr>
+                    <td colspan="2">
+                        <input type="submit" style="width: 300px;height: 40px;" value="添加版本">
+                    <td>
+                </tr>
+            </form>
+        </table>
+    </div>
+
+    <div>
+        <table>
+            <caption>添加边</caption>
+            <form>
+                <tr>
+                    <td>起始版本：</td>
+                    <td><input name="head"></td>
+                </tr>
+                <tr>
+                    <td>目标版本：</td>
+                    <td><input name="tail"></td>
+                </tr>
+                <tr>
+                    <td colspan="2">
+                        <input type="submit"  style="width: 300px;height: 40px;" value="添加指向边">
+                    </td>
+                </tr>
+            </form>
+        </table>
+    </div>
+
+</div>
+
+<!-- 为ECharts准备一个具备大小（宽高）的Dom -->
+<div id="main" style="width: 60%;height:2000px;float: left;"></div>
+
+
+<script th:inline="javascript">
+    // 基于准备好的dom，初始化echarts实例
+    var myChart = echarts.init(document.getElementById('main'));
+    myChart.hideLoading();//不展示正在加载中的动画
+    //数据节点类型
+    // data = [{
+    //     name: '节点1',
+    //     x: 300,
+    //     y: 300
+    // }, {
+    //     name: '节点2',
+    //     x: 800,
+    //     y: 300
+    // }, {
+    //     name: '节点3',
+    //     x: 550,
+    //     y: 100
+    // }, {
+    //     name: '节点4',
+    //     x: 550,
+    //     y: 500
+    // }]
+    datas = [[${datas}]];
+
+
+    data = [];
+    var iAdd1Num = 1;
+    var iAdd1CurrNum = 1;
+    var currY = 30;
+    var layerY = 30;
+    links = [];
+    currEdgeNum = 0;
+
+
+
+    //已画节点集合，直接去坐标
+    var yihuaVertexList = [];
+    //画root节点
+    var vt = {};
+    vt.name = datas[0][0].version;
+    vt.x = 300;
+    vt.y = 50;
+    data[0] = vt;
+    dataIndex = 1;
+    var yihuaVertex = {};
+    yihuaVertex.id = datas[0][0].id;
+    yihuaVertex.x = 300;
+    yihuaVertex.y = 50;
+    yihuaVertexList[0] = yihuaVertex;
+    listIndex = 1;
+    for (var i = 0; i < datas.length; i++) {
+
+        var currVvt = {};
+        for (var ind = 0; ind <data.length; ind++) {
+            if (datas[i][0].version == data[ind].name) {
+                currVvt = data[ind]
+            }
+        }
+
+        var childItemNum = datas[i].length - 1;
+        if (datas[i].length > 1) {
+            for (var j = 1; j < datas[i].length; j++) {
+                var edge = {};
+                edge.source = datas[i][0].version;
+                edge.target = datas[i][j].version;
+                links[currEdgeNum] = edge;
+                currEdgeNum++;
+
+                var flag = true;
+                for (var index = 0; index < yihuaVertexList.length; index++) {
+                    if (yihuaVertexList[index].id == datas[i][j].id) {
+                        flag = false;
+                        break;
+                    }
+                }
+
+                if (flag) {
+                    //画
+                    var vvvvt = {};
+                    vvvvt.name = datas[i][j].version;
+                    if (childItemNum == 1) {
+                        vvvvt.x = currVvt.x;
+                    } else {
+                        if (j <= childItemNum / 2) {
+                            vvvvt.x = currVvt.x - (childItemNum / 2 + 1 - j) * 50;
+                        } else {
+                            vvvvt.x = currVvt.x + (j - childItemNum / 2) * 50;
+                        }
+                    }
+                    vvvvt.y = currVvt.y + 50;
+                    data[dataIndex]= vvvvt;
+                    dataIndex++;
+
+                    var yi = {};
+                    yi.id = datas[i][j].id;
+                    yi.x = vvvvt.x;
+                    yi.y = vvvvt.y;
+                    yihuaVertexList[listIndex] = yi;
+                    listIndex++;
+                }
+
+            }
+
+        }
+
+
+    }
+
+
+
+    option = {
+        title: {
+            text: 'CKI版本管理'
+        },
+        tooltip: {
+            trigger: 'item',
+            triggerOn: 'mousemove',
+            formatter: function (params, ticket, callback) {
+                // params.name
+                var content = '';
+                for (var i = 0; i < datas.length; i++) {
+                    if (datas[i][0].version == params.name) {
+                        content += "版本：" + datas[i][0].version + '<br>';
+                        content += "更新内容：<br>" + datas[i][0].upContent + '<br>';
+                        content += "关联数据库版本：<br>" + datas[i][0].linkDbv;
+                        break;
+                    }
+                }
+                return content;
+            }
+        },
+        animationDurationUpdate: 1500,
+        animationEasingUpdate: 'quinticInOut',
+        series : [
+            {
+                type: 'graph',
+                layout: 'none',
+                symbolSize: 50,
+                roam: true,
+                label: {
+                    normal: {
+                        show: true
+                    }
+                },
+                edgeSymbol: ['circle', 'arrow'],
+                edgeSymbolSize: [4, 10],
+                edgeLabel: {
+                    normal: {
+                        textStyle: {
+                            fontSize: 20
+                        }
+                    }
+                },
+                data: data,
+                // links: [],
+                links: links,
+                lineStyle: {
+                    normal: {
+                        opacity: 0.9,
+                        width: 2,
+                        curveness: 0
+                    }
+                }
+            }
+        ]
+    };
+    myChart.setOption(option);
+
+</script>
+</body>
+</html>

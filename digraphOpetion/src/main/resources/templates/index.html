@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <script th:src="@{/js/echarts.js}" type="text/javascript"></script>
+    <script th:src="@{/js/jquery.min.js}" type="text/javascript"></script>
+
+    <style type="text/css">
+        #rightDiv {
+            border: #aabfa5 1px solid;
+        }
+        #rightDiv input{
+            width: 400px;
+            height: 20px;
+        }
+        #rightDiv textarea {
+            width: 398px;
+            height: 80px;
+        }
+        #rightDiv td {
+            width: 150px;
+        }
+    </style>
+
+    <script>
+        function showUpContent() {
+            var startNodeName = $('#startNodeName').val();
+            var endNodeName = $('#endNodeName').val();
+
+            $.post("/queryUpContent", {startNodeName: startNodeName, endNodeName: endNodeName}, function (data) {
+                if (data.msg == 'ok') {
+                    var html = '';
+                    html += "<table border='1' style='border-collapse: collapse;'>\n" +
+                        "            <caption>更新内容</caption>\n";
+                    for (var i = 0; i < data.data.length; i++) {
+                        html += "<tr>";
+                        html += "<td>版本号：</td>";
+                        html += "<td>" + data.data[i].version + "</td>";
+                        html += "<td>更新内容：</td>";
+                        html += "<td>" + data.data[i].upContent + "</td>";
+                        html += "<td>关联数据库：</td>";
+                        html += "<td>" + data.data[i].linkDbv + "</td>";
+                        // html += "<td>版本号：</td>";
+                        // html += "<td>" + data.data[i].version + "</td>";
+                        // html += "<td>版本号：</td>";
+                        // html += "<td>" + data.data[i].version + "</td>";
+                        html += "</tr>";
+                    }
+
+
+
+                    html += "</table>";
+
+                    $('#upContentShowDiv').html(html);
+                } else {
+                    alert(data.msg);
+                }
+            });
+
+        }
+    </script>
+</head>
+<body>
+
+
+<div style="position:fixed;top:0;right:0;width: 38%;height: 99%;border: solid 1px red;overflow-y:scroll">
+    <div>
+        <p><span>起始节点：</span><input id="startNodeName"></p>
+        <p><span>更新节点：</span><input id="endNodeName"></p>
+        <p><button onclick="showUpContent()">展示更新内容</button></p>
+    </div>
+    <div id="upContentShowDiv">
+
+    </div>
+</div>
+
+<!-- 为ECharts准备一个具备大小（宽高）的Dom -->
+<div id="main" style="width: 60%;height:25000px;float: left;"></div>
+
+
+<script th:inline="javascript">
+    // 基于准备好的dom，初始化echarts实例
+    var myChart = echarts.init(document.getElementById('main'));
+    myChart.hideLoading();//不展示正在加载中的动画
+    //数据节点类型
+    // data = [{
+    //     name: '节点1',
+    //     x: 300,
+    //     y: 300
+    // }, {
+    //     name: '节点2',
+    //     x: 800,
+    //     y: 300
+    // }, {
+    //     name: '节点3',
+    //     x: 550,
+    //     y: 100
+    // }, {
+    //     name: '节点4',
+    //     x: 550,
+    //     y: 500
+    // }]
+    datas = [[${datas}]];
+
+
+    data = [];
+    links = [];
+    var yihuaVertexList = [];
+    var currEdgeNum = 0;
+    var dataIndexNum = 0;
+    var indexNum = 0;
+    var baseX = 300;
+    var baseY = 0;
+    //先画主版本
+    for (var i = 0; i < datas.length; i++) {
+        if (datas[i][0].master > 0) {
+            var vt = {};
+            vt.name = datas[i][0].version;
+            vt.x = baseX;
+            baseY = baseY + 50;
+            vt.y = baseY;
+            data[dataIndexNum] = vt;
+            dataIndexNum++;
+
+            var yihuaVertex = {};
+            yihuaVertex.id = datas[i][0].id;
+            yihuaVertex.x = baseX;
+            yihuaVertex.y =baseY;
+            yihuaVertexList[indexNum] = yihuaVertex;
+            indexNum++;
+        }
+    }
+
+    //再画分支和边
+    for (var i = 0; i < datas.length; i++) {
+        var currVvt = {};
+        for (var ind = 0; ind <data.length; ind++) {
+            if (datas[i][0].version == data[ind].name) {
+                currVvt = data[ind]
+            }
+        }
+
+        childItemNum = datas[i].length - 1;
+        for (var j = 1; j < datas[i].length; j++) {
+            var edge = {};
+            edge.source = datas[i][0].version;
+            edge.target = datas[i][j].version;
+            links[currEdgeNum] = edge;
+            currEdgeNum++;
+
+            var flag = true;
+            for (var index = 0; index < yihuaVertexList.length; index++) {
+                if (yihuaVertexList[index].id == datas[i][j].id) {
+                    flag = false;
+                    break;
+                }
+            }
+
+            if (flag) {
+                var vvvvt = {};
+                vvvvt.name = datas[i][j].version;
+
+                if (currVvt.x > 300) {
+                    vvvvt.x = currVvt.x + j * 50;
+                } else if (currVvt.x < 300) {
+                    vvvvt.x = currVvt.x - j * 50;
+                } else {
+                    if (j % 2 == 1) {
+                        vvvvt.x = currVvt.x - (parseInt(j / 2) + 1) * 50;
+                    } else {
+                        vvvvt.x = currVvt.x + parseInt(j / 2) * 50;
+                    }
+                }
+
+
+                vvvvt.y = currVvt.y + 50;
+
+                data[dataIndexNum] = vvvvt;
+                dataIndexNum++;
+
+                var yihuaVertex = {};
+                yihuaVertex.id = datas[i][j].id;
+                yihuaVertex.x = vvvvt.x;
+                yihuaVertex.y =vvvvt.y;
+                yihuaVertexList[indexNum] = yihuaVertex;
+                indexNum++;
+            }
+        }
+
+    }
+
+    option = {
+        title: {
+            text: 'CKI版本管理'
+        },
+        tooltip: {
+            trigger: 'item',
+            triggerOn: 'mousemove',
+            formatter: function (params, ticket, callback) {
+                // params.name
+
+                var content = '';
+                if (params.dataType == 'edge') {
+                    //边
+                    content = params.data.source + ' --> ' + params.data.target;
+                } else {
+                    //节点
+                    for (var i = 0; i < datas.length; i++) {
+                        if (datas[i][0].version == params.name) {
+                            content += "版本：" + datas[i][0].version + '<br>';
+                            content += "更新内容：<br>" + datas[i][0].upContent + '<br>';
+                            content += "关联数据库版本：<br>" + datas[i][0].linkDbv;
+                            break;
+                        }
+                    }
+                }
+
+                return content;
+            }
+        },
+        animationDurationUpdate: 1500,
+        animationEasingUpdate: 'quinticInOut',
+        series : [
+            {
+                type: 'graph',
+                layout: 'none',
+                symbolSize: 50,
+                roam: true,
+                // focusNodeAdjacency: true,
+                label: {
+                    normal: {
+                        show: true
+                    }
+                },
+                edgeSymbol: ['circle', 'arrow'],
+                edgeSymbolSize: [4, 10],
+                edgeLabel: {
+                    normal: {
+                        textStyle: {
+                            fontSize: 20
+                        }
+                    }
+                },
+                data: data,
+                // links: [],
+                links: links,
+                lineStyle: {
+                    normal: {
+                        opacity: 0.9,
+                        width: 2,
+                        curveness: 0
+                    }
+                }
+            }
+        ]
+    };
+    myChart.setOption(option);
+
+    myChart.on('click', function (params) {
+        if (params.componentType === 'series') {
+            if (params.seriesType === 'graph') {
+                if (params.dataType === 'edge') {
+                    // 点击到了 graph 的 edge（边）上。
+                }
+                else {
+                    // 点击到了 graph 的 node（节点）上。
+                    if ($('#startNodeName').val().trim() == '') {
+                        $('#startNodeName').val(params.name)
+                    } else if ($('#endNodeName').val().trim() == '') {
+                        $('#endNodeName').val(params.name)
+                    } else {
+                        $('#startNodeName').val('');
+                        $('#endNodeName').val('')
+                    }
+                }
+            }
+        }
+    });
+
+    myChart.on('dblclick', function (params) {
+        if (params.componentType === 'series') {
+            if (params.seriesType === 'graph') {
+                if (params.dataType === 'edge') {
+                    // 点击到了 graph 的 edge（边）上。
+
+                }
+                else {
+                    // 点击到了 graph 的 node（节点）上。
+                }
+            }
+        }
+    });
+
+
+</script>
+</body>
+</html>
